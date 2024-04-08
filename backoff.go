@@ -17,7 +17,7 @@ func expBackoff(
 	result := make(chan error, 1)
 	go func() {
 		if limit < 1 {
-			result <- fmt.Errorf(`expected: limit>1 got: limit=%d`, limit)
+			result <- fmt.Errorf(`expected: limit>1 got: limit>=%d`, limit)
 			return
 		}
 		err := call()
@@ -25,7 +25,7 @@ func expBackoff(
 		case err == nil || limit == 1:
 			result <- err
 		case multiplier < 1.0:
-			result <- fmt.Errorf(`expected: multiplier>1.0 got: multiplier=%v`, multiplier)
+			result <- fmt.Errorf(`expected: multiplier>=1.0 got: multiplier=%v`, multiplier)
 		default:
 			timer := time.NewTimer(delay)
 			fDelay := float64(delay)
