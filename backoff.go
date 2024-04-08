@@ -16,8 +16,16 @@ func expBackoff(
 	done := ctx.Done()
 	result := make(chan error, 1)
 	go func() {
+		if limit < 1 {
+			result <- fmt.Errorf(`expected: limit>1 got: limit=%d`, limit)
+			return
+		}
 		err := call()
 		if err != nil && limit > 1 {
+			if multiplier < 1.0 {
+				result <- fmt.Errorf(`expected: multiplier>1.0 got: multiplier=%v`, multiplier)
+				return
+			}
 			timer := time.NewTimer(delay)
 			fDelay := float64(delay)
 			for step := 2; ; step++ {
