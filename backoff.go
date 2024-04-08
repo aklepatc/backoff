@@ -17,7 +17,7 @@ func expBackoff(
 	result := make(chan error, 1)
 	go func() {
 		if limit < 1 {
-			result <- fmt.Errorf(`expected: limit>1 got: limit>=%d`, limit)
+			result <- fmt.Errorf(`expected: limit>=1 got: limit=%d`, limit)
 			return
 		}
 		err := call()
