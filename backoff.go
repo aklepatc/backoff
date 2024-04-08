@@ -21,11 +21,12 @@ func expBackoff(
 			return
 		}
 		err := call()
-		if err != nil && limit > 1 {
-			if multiplier < 1.0 {
-				result <- fmt.Errorf(`expected: multiplier>1.0 got: multiplier=%v`, multiplier)
-				return
-			}
+		switch {
+		case err == nil || limit == 1:
+			result <- err
+		case multiplier < 1.0:
+			result <- fmt.Errorf(`expected: multiplier>1.0 got: multiplier=%v`, multiplier)
+		default:
 			timer := time.NewTimer(delay)
 			fDelay := float64(delay)
 			for step := 2; ; step++ {
@@ -45,7 +46,6 @@ func expBackoff(
 				}
 			}
 		}
-		result <- err
 	}()
 	select {
 	case <-done:
