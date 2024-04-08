@@ -8,38 +8,32 @@ import (
 
 func expBackoff(
 	ctx context.Context,
-	callback func() error,
+	call func() error,
 	delay time.Duration,
-	multiplier int64,
+	multiplier float64,
 	limit int,
 ) error {
 	done := ctx.Done()
-	select {
-	case <-done:
-		return ctx.Err()
-	default:
-	}
 	result := make(chan error, 1)
 	go func() {
-		err := callback()
+		err := call()
 		if err != nil && limit > 1 {
-			delayNS := delay.Nanoseconds()
-			timer := time.NewTimer(time.Duration(delayNS))
-			for step := 1; ; {
+			timer := time.NewTimer(delay)
+			fDelay := float64(delay)
+			for step := 2; ; step++ {
 				select {
 				case <-done:
 					result <- ctx.Err()
 					timer.Stop()
 					return
 				case <-timer.C:
-					err = callback()
-					step++
+					err = call()
 					if err == nil || step == limit {
 						result <- err
 						return
 					}
-					delayNS *= multiplier
-					timer.Reset(time.Duration(delayNS))
+					fDelay *= multiplier
+					timer.Reset(time.Duration(fDelay))
 				}
 			}
 		}
