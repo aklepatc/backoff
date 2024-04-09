@@ -7,43 +7,37 @@ import (
 )
 
 func expBackoff(
-	ctx context.Context,
-	call func() error,
-	delay time.Duration,
-	multiplier float64,
-	limit int,
+	ctx context.Context, call func() error, limit int, delay time.Duration, multiplier float64,
 ) error {
-	done := ctx.Done()
 	result := make(chan error, 1)
+	done := ctx.Done()
 	go func() {
-		if limit < 1 {
-			result <- fmt.Errorf(`expected: limit>=1 got: limit=%d`, limit)
+		if limit < 1 || multiplier < 1.0 || delay == 0 {
+			result <- fmt.Errorf(
+				`want: limit>=1 got: limit=%d want: multiplier>=1.0 got: multiplier=%v want: delay>0 got: delay=%v`,
+				limit, multiplier, delay,
+			)
 			return
 		}
 		err := call()
-		switch {
-		case err == nil || limit == 1:
+		if err == nil || limit == 1 {
 			result <- err
-		case multiplier < 1.0:
-			result <- fmt.Errorf(`expected: multiplier>=1.0 got: multiplier=%v`, multiplier)
-		default:
-			timer := time.NewTimer(delay)
-			fDelay := float64(delay)
-			for step := 2; ; step++ {
-				select {
-				case <-done:
-					result <- ctx.Err()
-					timer.Stop()
+			return
+		}
+		timer := time.NewTimer(delay)
+		for step, fDelay := 2, float64(delay); ; step++ {
+			select {
+			case <-done:
+				timer.Stop()
+				return
+			case <-timer.C:
+				err = call()
+				if err == nil || step == limit {
+					result <- err
 					return
-				case <-timer.C:
-					err = call()
-					if err == nil || step == limit {
-						result <- err
-						return
-					}
-					fDelay *= multiplier
-					timer.Reset(time.Duration(fDelay))
 				}
+				fDelay *= multiplier
+				timer.Reset(time.Duration(fDelay))
 			}
 		}
 	}()
