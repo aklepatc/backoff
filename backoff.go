@@ -45,9 +45,9 @@ func expBackoff(
 					result <- err
 					return
 				}
-				fDelay *= multiplier
-				timer.Reset(time.Duration(fDelay))
 			}
+			fDelay *= multiplier
+			timer.Reset(time.Duration(fDelay))
 		}
 	}()
 	select {
