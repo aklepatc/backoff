@@ -7,7 +7,11 @@ import (
 )
 
 func expBackoff(
-	ctx context.Context, call func() error, limit int, delay time.Duration, multiplier float64,
+	ctx context.Context,
+	call func() error,
+	limit int,
+	delay time.Duration,
+	multiplier float64,
 ) error {
 	result := make(chan error, 1)
 	done := ctx.Done()
@@ -18,6 +22,11 @@ func expBackoff(
 				limit, multiplier, delay,
 			)
 			return
+		}
+		select {
+		case <-done:
+			return
+		default:
 		}
 		err := call()
 		if err == nil || limit == 1 {
